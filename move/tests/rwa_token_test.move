@@ -5,8 +5,6 @@ module kyc_rwa_addr::rwa_token_test {
     use kyc_rwa_addr::rwa_token;
     use std::option::{Self, Option};
 
-    // use aptos_framework::primary_fungible_store;
-    // use aptos_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef};
     use std::string::{String};
 
     use aptos_std::smart_table::{SmartTable};
@@ -101,15 +99,6 @@ module kyc_rwa_addr::rwa_token_test {
     struct AdminInfo has key {
         admin_address: address,
     }
-
-    /* Resources */
-    // #[resource_group_member(group = aptos_framework::object::ObjectGroup)]
-    // struct Management has key {
-    //     extend_ref: ExtendRef,
-    //     mint_ref: MintRef,
-    //     burn_ref: BurnRef,
-    //     transfer_ref: TransferRef,
-    // }
 
     // -----------------------------------
     // Test Constants

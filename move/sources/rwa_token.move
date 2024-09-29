@@ -8,8 +8,8 @@ module kyc_rwa_addr::rwa_token {
     use aptos_framework::dispatchable_fungible_asset;
     use aptos_framework::function_info;
     use std::signer;
-    use std::option::{Self};
     use std::event;
+    use std::option::{Self};
     use std::string::{Self, utf8};
 
     // -----------------------------------

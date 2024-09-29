@@ -321,7 +321,7 @@ module kyc_rwa_addr::kyc_controller {
         // get the KycRegistrarTable resource
         let kyc_registrar_table = borrow_global_mut<KycRegistrarTable>(kyc_controller_signer_addr);
 
-        //removes KYC registrar
+        //get KYC registrar
         let kyc_registrar = smart_table::borrow_mut(
             &mut kyc_registrar_table.kyc_registrars, 
             registrar_address
