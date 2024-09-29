@@ -1,7 +1,6 @@
-## Create Aptos Dapp Boilerplate Template
+## Aptos PropVerify - KYC+RWA Framework
 
-The Boilerplate template provides a starter dapp with all necessary dapp infrastructure and a simple wallet info implementation.
-
+Introduce Aptos PropVerify 
 
 The Boilerplate template provides:
 
