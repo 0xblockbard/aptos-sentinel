@@ -2,21 +2,26 @@ module kyc_rwa_addr::rwa_token {
     
     use kyc_rwa_addr::kyc_controller;
 
-    use aptos_framework::object::{Self, Object, ExtendRef};
-    use aptos_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata, FungibleAsset, FungibleStore };
-    use aptos_framework::primary_fungible_store;
-    use aptos_framework::dispatchable_fungible_asset;
-    use aptos_framework::function_info;
-    use std::signer;
     use std::event;
+    use std::signer;
+    use std::timestamp;
     use std::option::{Self};
     use std::string::{Self, utf8};
+
+    // use aptos_std::smart_table::{Self, SmartTable};
+
+    use aptos_framework::function_info;
+    use aptos_framework::primary_fungible_store;
+    use aptos_framework::dispatchable_fungible_asset;
+    use aptos_framework::object::{Self, Object, ExtendRef};
+    use aptos_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata, FungibleAsset, FungibleStore };
 
     // -----------------------------------
     // Seeds
     // -----------------------------------
 
-    const ASSET_SYMBOL : vector<u8>   = b"KYCRWA";
+    const ASSET_SYMBOL : vector<u8>          = b"KYCRWA";
+    const KYC_CONTROLLER_SEED : vector<u8>   = b"SENTINEL";
 
     // -----------------------------------
     // Constants
@@ -37,6 +42,8 @@ module kyc_rwa_addr::rwa_token {
     const ERROR_SEND_NOT_ALLOWED: u64                                   = 21;
     const ERROR_RECEIVE_NOT_ALLOWED: u64                                = 22;
     const ERROR_MAX_TRANSACTION_AMOUNT_EXCEEDED: u64                    = 23;
+    const ERROR_TRANSACTION_COUNT_VELOCITY_MAX_EXCEEDED: u64            = 24;
+    const ERROR_TRANSACTION_AMOUNT_VELOCITY_MAX_EXCEEDED: u64           = 25;
 
     // -----------------------------------
     // Structs
@@ -54,6 +61,47 @@ module kyc_rwa_addr::rwa_token {
     struct AdminInfo has key {
         admin_address: address,
     }
+
+    struct Identity has key, store, drop {
+        country: u16,               
+        investor_status: u8,        
+        kyc_registrar : address,
+        is_frozen: bool,
+
+        // transaction count velocity timestamp record
+        transaction_count_velocity_timestamp: u64,
+        cumulative_transaction_count: u64,
+
+        // transaction amount velocity record
+        transaction_amount_velocity_timestamp: u64,
+        cumulative_transaction_amount: u64
+    }
+
+    struct TransactionPolicy has key, store, drop {
+        blacklist_countries: vector<u16>, 
+        can_send: bool,                  
+        can_receive: bool,               
+        max_transaction_amount: u64,  
+
+        // transaction count velocity
+        apply_transaction_count_velocity: bool,
+        transaction_count_velocity_timeframe: u64,   // in seconds
+        transaction_count_velocity_max: u64,         // max number of transactions within given velocity timeframe
+
+        // transaction amount velocity
+        apply_transaction_amount_velocity: bool,
+        transaction_amount_velocity_timeframe: u64,  // in seconds
+        transaction_amount_velocity_max: u64,        // cumulative max amount within given velocity timeframe
+    }
+
+    struct TransactionPolicyKey has key, copy, drop, store {
+        country: u16,
+        investor_status: u8,
+    }
+
+    // struct TransactionPolicyTable has key, store {
+    //     policies: SmartTable<TransactionPolicyKey, TransactionPolicy>  
+    // }
 
     // -----------------------------------
     // Events
@@ -166,7 +214,7 @@ module kyc_rwa_addr::rwa_token {
 
         let store_owner = object::owner(store);
 
-        // Verify KYC status for the store owner (with amount check)
+        // verify KYC status for the store owner (with amount check)
         let (_, can_receive, valid_amount) = kyc_controller::verify_kyc_user(store_owner, option::some(amount));
         assert!(can_receive, ERROR_RECEIVE_NOT_ALLOWED);
         assert!(valid_amount, ERROR_MAX_TRANSACTION_AMOUNT_EXCEEDED);
@@ -183,16 +231,98 @@ module kyc_rwa_addr::rwa_token {
         transfer_ref: &TransferRef,
     ) {
 
-        let store_owner = object::owner(store);
+        let store_owner    = object::owner(store);
+        let deposit_amount = fungible_asset::amount(&fa);
 
         // Verify KYC status for the store owner (without amount check)
         let (can_send, _, _) = kyc_controller::verify_kyc_user(store_owner, option::none());
         assert!(can_send, ERROR_SEND_NOT_ALLOWED);
 
+        // get user identity
+        let (
+            country,
+            investor_status,
+            _kyc_registrar,
+            _is_frozen,
+
+            // transaction count velocity timestamp record
+            transaction_count_velocity_timestamp,
+            cumulative_transaction_count,
+
+            // transaction amount velocity record
+            transaction_amount_velocity_timestamp,
+            cumulative_transaction_amount
+        ) = kyc_controller::get_identity(store_owner);
+
+        // get transaction policy
+        let (
+            _blacklist_countries,
+            _can_send,
+            _can_receive,
+            _max_transaction_amount,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
+        ) = kyc_controller::get_transaction_policy(country, investor_status);
+
+        // init current time
+        let current_time = timestamp::now_seconds();
+
+        // process transaction count velocity
+        let time_since_last_transaction = current_time - transaction_count_velocity_timestamp;
+        if (time_since_last_transaction > transaction_count_velocity_timeframe) {
+            // reset cumulative count and timestamp as the velocity timeframe has passed
+            kyc_controller::update_user_identity_transaction_count_velocity(
+                store_owner,
+                current_time,   // current timestamp
+                1               // include current transaction as part of cumulative_transaction_count
+            );
+        } else {
+            // add to cumulative count
+            kyc_controller::update_user_identity_transaction_count_velocity(
+                store_owner,
+                transaction_count_velocity_timestamp,  // no change to timestamp
+                cumulative_transaction_count + 1       // update count
+            );
+        };
+
+        // if apply_transaction_count_velocity is true, verify that cumulative_transaction_count does not exeed transaction_count_velocity_max
+        if (apply_transaction_count_velocity) {
+            assert!(cumulative_transaction_count + 1 <= transaction_count_velocity_max, ERROR_TRANSACTION_COUNT_VELOCITY_MAX_EXCEEDED);
+        };
+
+        // process transaction amount velocity
+        let time_since_last_amount_velocity = current_time - transaction_amount_velocity_timestamp;
+        if (time_since_last_amount_velocity > transaction_amount_velocity_timeframe) {
+            // reset cumulative amount and timestamp as the velocity timeframe has passed
+            kyc_controller::update_user_identity_transaction_amount_velocity(
+                store_owner,
+                current_time,   // current timestamp
+                deposit_amount  // include current transaction amount as part of cumulative_transaction_amount
+            );
+        } else {
+            // add to cumulative amount
+            kyc_controller::update_user_identity_transaction_count_velocity(
+                store_owner,
+                transaction_amount_velocity_timeframe,          // no change to timestamp
+                cumulative_transaction_amount + deposit_amount  // update cumulative_transaction_acmount
+            );
+        };
+
+        // if apply_transaction_amount_velocity is true, verify that cumulative_transaction_amount does not exeed transaction_count_velocity_max
+        if (apply_transaction_amount_velocity) {
+            assert!(cumulative_transaction_amount + deposit_amount <= transaction_amount_velocity_max, ERROR_TRANSACTION_AMOUNT_VELOCITY_MAX_EXCEEDED);
+        };
+
         // Deposit the remaining amount from the input store and return it.
         fungible_asset::deposit_with_ref(transfer_ref, store, fa);
-
     }
+
 
     /* Minting and Burning */
     /// Mint new assets to the specified account.
@@ -244,7 +374,7 @@ module kyc_rwa_addr::rwa_token {
 
 
     /// Burn assets from the specified account.
-    public entry fun burn(admin: &signer, from: address, amount: u64) acquires Management, AdminInfo {
+    public entry fun burn(admin: &signer, from: address, amount: u64) acquires Management, AdminInfo{
 
         let kyc_token_signer_addr = get_token_signer_addr();
 
@@ -271,6 +401,87 @@ module kyc_rwa_addr::rwa_token {
         // Verify KYC between sender and receiver
         let from_address = signer::address_of(from);
         kyc_controller::verify_kyc_transfer(from_address, to, amount);
+
+        // get user identity
+        let (
+            country,
+            investor_status,
+            _kyc_registrar,
+            _is_frozen,
+
+            // transaction count velocity timestamp record
+            transaction_count_velocity_timestamp,
+            cumulative_transaction_count,
+
+            // transaction amount velocity record
+            transaction_amount_velocity_timestamp,
+            cumulative_transaction_amount
+        ) = kyc_controller::get_identity(from_address);
+
+        // get transaction policy
+        let (
+            _blacklist_countries,
+            _can_send,
+            _can_receive,
+            _max_transaction_amount,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
+        ) = kyc_controller::get_transaction_policy(country, investor_status);
+        
+        // init current time
+        let current_time    = timestamp::now_seconds();
+
+        // process transaction count velocity
+        let time_since_last_transaction = current_time - transaction_count_velocity_timestamp;
+        if (time_since_last_transaction > transaction_count_velocity_timeframe) {
+            // reset cumulative count and timestamp as the velocity timeframe has passed
+            kyc_controller::update_user_identity_transaction_count_velocity(
+                from_address,
+                current_time,   // current timestamp
+                1               // include current transaction as part of cumulative_transaction_count
+            );
+        } else {
+            // add to cumulative count
+            kyc_controller::update_user_identity_transaction_count_velocity(
+                from_address,
+                transaction_count_velocity_timestamp,  // no change to timestamp
+                cumulative_transaction_count + 1       // update count
+            );
+        };
+
+        // if apply_transaction_count_velocity is true, verify that cumulative_transaction_count does not exeed transaction_count_velocity_max
+        if (apply_transaction_count_velocity) {
+            assert!(cumulative_transaction_count + 1 <= transaction_count_velocity_max, ERROR_TRANSACTION_COUNT_VELOCITY_MAX_EXCEEDED);
+        };
+
+        // process transaction amount velocity
+        let time_since_last_amount_velocity = current_time - transaction_amount_velocity_timestamp;
+        if (time_since_last_amount_velocity > transaction_amount_velocity_timeframe) {
+            // reset cumulative amount and timestamp as the velocity timeframe has passed
+            kyc_controller::update_user_identity_transaction_amount_velocity(
+                from_address,
+                current_time,   // current timestamp
+                amount          // include current transaction amount as part of cumulative_transaction_amount
+            );
+        } else {
+            // add to cumulative amount
+            kyc_controller::update_user_identity_transaction_count_velocity(
+                from_address,
+                transaction_amount_velocity_timeframe,   // no change to timestamp
+                cumulative_transaction_amount + amount   // update cumulative_transaction_acmount
+            );
+        };
+
+        // if apply_transaction_amount_velocity is true, verify that cumulative_transaction_amount does not exeed transaction_count_velocity_max
+        if (apply_transaction_amount_velocity) {
+            assert!(cumulative_transaction_amount + amount <= transaction_amount_velocity_max, ERROR_TRANSACTION_AMOUNT_VELOCITY_MAX_EXCEEDED);
+        };
         
         // Withdraw the assets from the sender's store and deposit them to the recipient's store.
         let management = borrow_global<Management>(metadata_address());
@@ -288,6 +499,10 @@ module kyc_rwa_addr::rwa_token {
     fun get_token_signer_addr() : address {
         object::create_object_address(&@kyc_rwa_addr, ASSET_SYMBOL)
     }
+
+    // fun get_kyc_controller_signer_addr() : address {
+    //     object::create_object_address(&@kyc_rwa_addr, KYC_CONTROLLER_SEED)
+    // }
 
     // -----------------------------------
     // Unit Tests
@@ -313,8 +528,15 @@ module kyc_rwa_addr::rwa_token {
         
         init_module(kyc_rwa);
 
-        // setup environment
-        let (_kyc_controller_addr, _creator_addr, kyc_registrar_one_addr, kyc_registrar_two_addr, kyc_user_one_addr, _kyc_user_two_addr) = kyc_controller::setup_test(aptos_framework, kyc_rwa, creator, kyc_registrar_one, kyc_registrar_two, kyc_user_one, kyc_user_two);
+        // setup kyc controller environment
+        let (
+            _kyc_controller_addr, 
+            _creator_addr, 
+            kyc_registrar_one_addr, 
+            kyc_registrar_two_addr, 
+            kyc_user_one_addr, 
+            _kyc_user_two_addr
+        ) = kyc_controller::setup_test(aptos_framework, kyc_rwa, creator, kyc_registrar_one, kyc_registrar_two, kyc_user_one, kyc_user_two);
 
         setup_kyc_for_test(kyc_rwa, kyc_registrar_one_addr, kyc_registrar_two_addr);
 
@@ -342,6 +564,14 @@ module kyc_rwa_addr::rwa_token {
         let max_transaction_amount  = 10000;
         let blacklist_countries     = vector[]; 
 
+        let apply_transaction_count_velocity        = false;
+        let transaction_count_velocity_timeframe    = 86400;
+        let transaction_count_velocity_max          = 5;
+
+        let apply_transaction_amount_velocity       = false;
+        let transaction_amount_velocity_timeframe   = 86400;
+        let transaction_amount_velocity_max         = 500_000_000_00;
+
         kyc_controller::add_or_update_transaction_policy(
             kyc_rwa,
             country_id,
@@ -349,7 +579,15 @@ module kyc_rwa_addr::rwa_token {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         // test withdraw
@@ -376,8 +614,15 @@ module kyc_rwa_addr::rwa_token {
         
         init_module(kyc_rwa);
 
-        // setup environment
-        let (_kyc_controller_addr, _creator_addr, kyc_registrar_one_addr, kyc_registrar_two_addr, kyc_user_one_addr, _kyc_user_two_addr) = kyc_controller::setup_test(aptos_framework, kyc_rwa, creator, kyc_registrar_one, kyc_registrar_two, kyc_user_one, kyc_user_two);
+        // setup kyc controller environment
+        let (
+            _kyc_controller_addr, 
+            _creator_addr, 
+            kyc_registrar_one_addr, 
+            kyc_registrar_two_addr, 
+            kyc_user_one_addr, 
+            _kyc_user_two_addr
+        ) = kyc_controller::setup_test(aptos_framework, kyc_rwa, creator, kyc_registrar_one, kyc_registrar_two, kyc_user_one, kyc_user_two);
 
         setup_kyc_for_test(kyc_rwa, kyc_registrar_one_addr, kyc_registrar_two_addr);
 
@@ -405,6 +650,14 @@ module kyc_rwa_addr::rwa_token {
         let max_transaction_amount  = 1;
         let blacklist_countries     = vector[]; 
 
+        let apply_transaction_count_velocity        = false;
+        let transaction_count_velocity_timeframe    = 86400;
+        let transaction_count_velocity_max          = 5;
+
+        let apply_transaction_amount_velocity       = false;
+        let transaction_amount_velocity_timeframe   = 86400;
+        let transaction_amount_velocity_max         = 500_000_000_00;
+
         kyc_controller::add_or_update_transaction_policy(
             kyc_rwa,
             country_id,
@@ -412,7 +665,15 @@ module kyc_rwa_addr::rwa_token {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         // test withdraw
@@ -439,8 +700,15 @@ module kyc_rwa_addr::rwa_token {
         
         init_module(kyc_rwa);
 
-        // setup environment
-        let (_kyc_controller_addr, _creator_addr, kyc_registrar_one_addr, kyc_registrar_two_addr, kyc_user_one_addr, _kyc_user_two_addr) = kyc_controller::setup_test(aptos_framework, kyc_rwa, creator, kyc_registrar_one, kyc_registrar_two, kyc_user_one, kyc_user_two);
+        // setup kyc controller environment
+        let (
+            _kyc_controller_addr, 
+            _creator_addr, 
+            kyc_registrar_one_addr, 
+            kyc_registrar_two_addr, 
+            kyc_user_one_addr, 
+            _kyc_user_two_addr
+        ) = kyc_controller::setup_test(aptos_framework, kyc_rwa, creator, kyc_registrar_one, kyc_registrar_two, kyc_user_one, kyc_user_two);
 
         setup_kyc_for_test(kyc_rwa, kyc_registrar_one_addr, kyc_registrar_two_addr);
 
@@ -468,6 +736,14 @@ module kyc_rwa_addr::rwa_token {
         let max_transaction_amount  = 1000;
         let blacklist_countries     = vector[]; 
 
+        let apply_transaction_count_velocity        = false;
+        let transaction_count_velocity_timeframe    = 86400;
+        let transaction_count_velocity_max          = 5;
+
+        let apply_transaction_amount_velocity       = false;
+        let transaction_amount_velocity_timeframe   = 86400;
+        let transaction_amount_velocity_max         = 500_000_000_00;
+
         kyc_controller::add_or_update_transaction_policy(
             kyc_rwa,
             country_id,
@@ -475,7 +751,15 @@ module kyc_rwa_addr::rwa_token {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         // test deposit
@@ -501,8 +785,15 @@ module kyc_rwa_addr::rwa_token {
         
         init_module(kyc_rwa);
 
-        // setup environment
-        let (_kyc_controller_addr, _creator_addr, kyc_registrar_one_addr, kyc_registrar_two_addr, kyc_user_one_addr, _kyc_user_two_addr) = kyc_controller::setup_test(aptos_framework, kyc_rwa, creator, kyc_registrar_one, kyc_registrar_two, kyc_user_one, kyc_user_two);
+        // setup kyc controller environment
+        let (
+            _kyc_controller_addr, 
+            _creator_addr, 
+            kyc_registrar_one_addr, 
+            kyc_registrar_two_addr, 
+            kyc_user_one_addr, 
+            _kyc_user_two_addr
+        ) = kyc_controller::setup_test(aptos_framework, kyc_rwa, creator, kyc_registrar_one, kyc_registrar_two, kyc_user_one, kyc_user_two);
 
         setup_kyc_for_test(kyc_rwa, kyc_registrar_one_addr, kyc_registrar_two_addr);
 
@@ -587,7 +878,17 @@ module kyc_rwa_addr::rwa_token {
         can_send: bool,
         can_receive: bool,
         max_transaction_amount: u64,
-        blacklist_countries: vector<u16>
+        blacklist_countries: vector<u16>,
+
+        // transaction count velocity
+        apply_transaction_count_velocity: bool,
+        transaction_count_velocity_timeframe: u64,   // in seconds
+        transaction_count_velocity_max: u64,         // max number of transactions within given velocity timeframe
+
+        // transaction amount velocity
+        apply_transaction_amount_velocity: bool,
+        transaction_amount_velocity_timeframe: u64,  // in seconds
+        transaction_amount_velocity_max: u64,        // cumulative max amount within given velocity timeframe
     ) {
         kyc_controller::add_or_update_transaction_policy(
             kyc_controller,
@@ -596,7 +897,15 @@ module kyc_rwa_addr::rwa_token {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
     }
 
@@ -654,6 +963,14 @@ module kyc_rwa_addr::rwa_token {
         let max_transaction_amount  = 10000;
         let blacklist_countries     = vector[];
 
+        let apply_transaction_count_velocity        = false;
+        let transaction_count_velocity_timeframe    = 86400;
+        let transaction_count_velocity_max          = 5;
+
+        let apply_transaction_amount_velocity       = false;
+        let transaction_amount_velocity_timeframe   = 86400;
+        let transaction_amount_velocity_max         = 500_000_000_00;
+
         kyc_controller::add_or_update_transaction_policy(
             kyc_controller,
             country_id,
@@ -661,7 +978,15 @@ module kyc_rwa_addr::rwa_token {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 0; // usa
@@ -673,7 +998,15 @@ module kyc_rwa_addr::rwa_token {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 1; // thailand
@@ -685,7 +1018,15 @@ module kyc_rwa_addr::rwa_token {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 1; // thailand
@@ -697,7 +1038,15 @@ module kyc_rwa_addr::rwa_token {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 2; // japan
@@ -709,7 +1058,15 @@ module kyc_rwa_addr::rwa_token {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 2; // japan
@@ -721,7 +1078,15 @@ module kyc_rwa_addr::rwa_token {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
     }

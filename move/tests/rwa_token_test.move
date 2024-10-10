@@ -161,7 +161,17 @@ module kyc_rwa_addr::rwa_token_test {
         can_send: bool,
         can_receive: bool,
         max_transaction_amount: u64,
-        blacklist_countries: vector<u16>
+        blacklist_countries: vector<u16>,
+
+        // transaction count velocity
+        apply_transaction_count_velocity: bool,
+        transaction_count_velocity_timeframe: u64,   // in seconds
+        transaction_count_velocity_max: u64,         // max number of transactions within given velocity timeframe
+
+        // transaction amount velocity
+        apply_transaction_amount_velocity: bool,
+        transaction_amount_velocity_timeframe: u64,  // in seconds
+        transaction_amount_velocity_max: u64,        // cumulative max amount within given velocity timeframe
     ) {
         kyc_controller::add_or_update_transaction_policy(
             kyc_controller,
@@ -170,7 +180,15 @@ module kyc_rwa_addr::rwa_token_test {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
     }
 
@@ -227,6 +245,14 @@ module kyc_rwa_addr::rwa_token_test {
         let max_transaction_amount  = 10000;
         let blacklist_countries     = vector[];
 
+        let apply_transaction_count_velocity        = false;
+        let transaction_count_velocity_timeframe    = 86400;
+        let transaction_count_velocity_max          = 5;
+
+        let apply_transaction_amount_velocity       = false;
+        let transaction_amount_velocity_timeframe   = 86400;
+        let transaction_amount_velocity_max         = 500_000_000_00;
+
         kyc_controller::add_or_update_transaction_policy(
             kyc_controller,
             country_id,
@@ -234,7 +260,15 @@ module kyc_rwa_addr::rwa_token_test {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 0; // usa
@@ -246,7 +280,15 @@ module kyc_rwa_addr::rwa_token_test {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 1; // thailand
@@ -258,7 +300,15 @@ module kyc_rwa_addr::rwa_token_test {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 1; // thailand
@@ -270,7 +320,15 @@ module kyc_rwa_addr::rwa_token_test {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 2; // japan
@@ -282,7 +340,15 @@ module kyc_rwa_addr::rwa_token_test {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 2; // japan
@@ -294,7 +360,15 @@ module kyc_rwa_addr::rwa_token_test {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
     }
@@ -430,6 +504,14 @@ module kyc_rwa_addr::rwa_token_test {
         let max_transaction_amount  = 10000;
         let blacklist_countries     = vector[]; 
 
+        let apply_transaction_count_velocity        = false;
+        let transaction_count_velocity_timeframe    = 86400;
+        let transaction_count_velocity_max          = 5;
+
+        let apply_transaction_amount_velocity       = false;
+        let transaction_amount_velocity_timeframe   = 86400;
+        let transaction_amount_velocity_max         = 500_000_000_00;
+
         kyc_controller::add_or_update_transaction_policy(
             kyc_rwa,
             country_id,
@@ -437,7 +519,15 @@ module kyc_rwa_addr::rwa_token_test {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         // can_receive is false
