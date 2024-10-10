@@ -50,7 +50,7 @@ module kyc_rwa_addr::kyc_controller {
         blacklist_countries: vector<u16>, 
         can_send: bool,                  
         can_receive: bool,               
-        max_transaction_amount: u64,     
+        max_transaction_amount: u64,  
     }
 
     struct TransactionPolicyKey has key, copy, drop, store {

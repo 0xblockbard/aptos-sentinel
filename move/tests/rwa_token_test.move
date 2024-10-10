@@ -18,27 +18,29 @@ module kyc_rwa_addr::rwa_token_test {
     // KYC Controller Errors
     const ERROR_NOT_ADMIN: u64                                          = 1;
     const ERROR_NOT_KYC_REGISTRAR: u64                                  = 2;
-    const ERROR_USER_NOT_KYC: u64                                       = 3;
-    const ERROR_SENDER_NOT_KYC: u64                                     = 4;
-    const ERROR_RECEIVER_NOT_KYC: u64                                   = 5;
-    const ERROR_KYC_REGISTRAR_INACTIVE: u64                             = 6;
-    const ERROR_INVALID_KYC_REGISTRAR_PERMISSION: u64                   = 7;
-    const ERROR_USER_IS_FROZEN: u64                                     = 8;
-    const ERROR_SENDER_IS_FROZEN: u64                                   = 9;
-    const ERROR_RECEIVER_IS_FROZEN: u64                                 = 10;
-    const ERROR_SENDER_TRANSACTION_POLICY_CANNOT_SEND: u64              = 11;
-    const ERROR_RECEIVER_TRANSACTION_POLICY_CANNOT_RECEIVE: u64         = 12;
-    const ERROR_SENDER_COUNTRY_IS_BLACKLISTED: u64                      = 13;
-    const ERROR_RECEIVER_COUNTRY_IS_BLACKLISTED: u64                    = 14;
-    const ERROR_COUNTRY_NOT_FOUND: u64                                  = 15;
-    const ERROR_INVESTOR_STATUS_NOT_FOUND: u64                          = 16;
-    const ERROR_SEND_AMOUNT_GREATER_THAN_MAX_TRANSACTION_AMOUNT: u64    = 17;
+    const ERROR_IDENTITY_NOT_FOUND: u64                                 = 3;
+    const ERROR_KYC_REGISTRAR_NOT_FOUND: u64                            = 4;
+    const ERROR_USER_NOT_KYC: u64                                       = 5;
+    const ERROR_SENDER_NOT_KYC: u64                                     = 6;
+    const ERROR_RECEIVER_NOT_KYC: u64                                   = 7;
+    const ERROR_KYC_REGISTRAR_INACTIVE: u64                             = 8;
+    const ERROR_INVALID_KYC_REGISTRAR_PERMISSION: u64                   = 9;
+    const ERROR_USER_IS_FROZEN: u64                                     = 10;
+    const ERROR_SENDER_IS_FROZEN: u64                                   = 11;
+    const ERROR_RECEIVER_IS_FROZEN: u64                                 = 12;
+    const ERROR_SENDER_TRANSACTION_POLICY_CANNOT_SEND: u64              = 13;
+    const ERROR_RECEIVER_TRANSACTION_POLICY_CANNOT_RECEIVE: u64         = 14;
+    const ERROR_SENDER_COUNTRY_IS_BLACKLISTED: u64                      = 15;
+    const ERROR_RECEIVER_COUNTRY_IS_BLACKLISTED: u64                    = 16;
+    const ERROR_COUNTRY_NOT_FOUND: u64                                  = 17;
+    const ERROR_INVESTOR_STATUS_NOT_FOUND: u64                          = 18;
+    const ERROR_SEND_AMOUNT_GREATER_THAN_MAX_TRANSACTION_AMOUNT: u64    = 19;
     
     // RWA Token Errors
-    const ERROR_TRANSFER_KYC_FAIL: u64                                  = 18;
-    const ERROR_SEND_NOT_ALLOWED: u64                                   = 19;
-    const ERROR_RECEIVE_NOT_ALLOWED: u64                                = 20;
-    const ERROR_MAX_TRANSACTION_AMOUNT_EXCEEDED: u64                    = 21;
+    const ERROR_TRANSFER_KYC_FAIL: u64                                  = 20;
+    const ERROR_SEND_NOT_ALLOWED: u64                                   = 21;
+    const ERROR_RECEIVE_NOT_ALLOWED: u64                                = 22;
+    const ERROR_MAX_TRANSACTION_AMOUNT_EXCEEDED: u64                    = 23;
 
     // -----------------------------------
     // Structs

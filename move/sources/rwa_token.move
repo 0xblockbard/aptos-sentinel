@@ -33,10 +33,10 @@ module kyc_rwa_addr::rwa_token {
     // -----------------------------------
 
     const ERROR_NOT_ADMIN: u64                                          = 1;
-    const ERROR_TRANSFER_KYC_FAIL: u64                                  = 18;
-    const ERROR_SEND_NOT_ALLOWED: u64                                   = 19;
-    const ERROR_RECEIVE_NOT_ALLOWED: u64                                = 20;
-    const ERROR_MAX_TRANSACTION_AMOUNT_EXCEEDED: u64                    = 21;
+    const ERROR_TRANSFER_KYC_FAIL: u64                                  = 20;
+    const ERROR_SEND_NOT_ALLOWED: u64                                   = 21;
+    const ERROR_RECEIVE_NOT_ALLOWED: u64                                = 22;
+    const ERROR_MAX_TRANSACTION_AMOUNT_EXCEEDED: u64                    = 23;
 
     // -----------------------------------
     // Structs
