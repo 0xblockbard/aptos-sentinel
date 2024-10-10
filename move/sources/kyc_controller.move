@@ -35,7 +35,8 @@ module kyc_rwa_addr::kyc_controller {
         registrar_address : address,
         name : String,
         description : String,
-        active : bool,
+        image_url : String,
+        active : bool
     }
 
     struct KycRegistrarTable has key, store {
@@ -108,14 +109,16 @@ module kyc_rwa_addr::kyc_controller {
     struct NewKycRegistrarEvent has drop, store {
         registrar_address: address,
         name: String,
-        description: String
+        description: String,
+        image_url: String
     }
 
     #[event]
     struct KycRegistrarUpdatedEvent has drop, store {
         registrar_address: address,
         name: String,
-        description: String
+        description: String,
+        image_url: String
     }
 
     #[event]
@@ -228,7 +231,8 @@ module kyc_rwa_addr::kyc_controller {
         admin: &signer, 
         registrar_address: address, 
         name: String,
-        description: String
+        description: String,
+        image_url: String
     ) acquires AdminInfo, KycRegistrarTable {
         
         let kyc_controller_signer_addr = get_kyc_controller_signer_addr();
@@ -248,6 +252,7 @@ module kyc_rwa_addr::kyc_controller {
                 registrar_address,
                 name,
                 description,
+                image_url
             });
 
         } else {
@@ -257,6 +262,7 @@ module kyc_rwa_addr::kyc_controller {
                 registrar_address,
                 name,
                 description,
+                image_url
             });
 
         };
@@ -269,6 +275,7 @@ module kyc_rwa_addr::kyc_controller {
                 registrar_address,
                 name,
                 description,
+                image_url,
                 active: true,
             },
         );
@@ -926,12 +933,14 @@ module kyc_rwa_addr::kyc_controller {
     public fun test_NewKycRegistrarEvent(
         registrar_address: address,
         name: String,
-        description: String
+        description: String,
+        image_url: String
     ): NewKycRegistrarEvent {
         let event = NewKycRegistrarEvent{
             registrar_address,
             name,
-            description
+            description,
+            image_url
         };
         return event
     }
@@ -941,12 +950,14 @@ module kyc_rwa_addr::kyc_controller {
     public fun test_KycRegistrarUpdatedEvent(
         registrar_address: address,
         name: String,
-        description: String
+        description: String,
+        image_url: String
     ): KycRegistrarUpdatedEvent {
         let event = KycRegistrarUpdatedEvent{
             registrar_address,
             name,
-            description
+            description,
+            image_url
         };
         return event
     }

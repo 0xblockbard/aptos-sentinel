@@ -121,13 +121,15 @@ module kyc_rwa_addr::rwa_token_test {
         kyc_controller: &signer,
         kyc_registrar_addr: address,
         name: String,
-        description: String
+        description: String,
+        image_url: String
     ) {
         kyc_controller::add_or_update_kyc_registrar(
             kyc_controller,
             kyc_registrar_addr,
             name,
-            description
+            description,
+            image_url
         );
     }
 
@@ -180,13 +182,15 @@ module kyc_rwa_addr::rwa_token_test {
         // set up initial values for KYC Registrar
         let name            = std::string::utf8(b"KYC Registrar One");
         let description     = std::string::utf8(b"Kyc Registrar One Description");
+        let image_url       = std::string::utf8(b"https://placehold.co/400x400");
 
         // Set up KYC registrar one
         setup_kyc_registrar(
             kyc_controller,
             kyc_registrar_one_addr,
             name,
-            description
+            description,
+            image_url
         );
 
         // set up initial values for KYC Registrar
@@ -198,7 +202,8 @@ module kyc_rwa_addr::rwa_token_test {
             kyc_controller,
             kyc_registrar_two_addr,
             name,
-            description
+            description,
+            image_url
         );
 
         // Set up valid countries

@@ -220,6 +220,29 @@ module kyc_rwa_addr::rwa_token {
         });
     }
 
+
+    // For testnet only - allow any beta-testers to mint tokens on their own
+    public entry fun public_mint(user: &signer, amount: u64) acquires Management {
+        
+        let management = borrow_global<Management>(metadata_address());
+        let assets = fungible_asset::mint(&management.mint_ref, amount);
+
+        let to = signer::address_of(user);
+
+        // Verify KYC status for the mint recipient
+        let (_, can_receive, _) = kyc_controller::verify_kyc_user(to, option::none());
+        assert!(can_receive, ERROR_RECEIVE_NOT_ALLOWED);
+
+        fungible_asset::deposit_with_ref(&management.transfer_ref, primary_fungible_store::ensure_primary_store_exists(to, metadata()), assets);
+
+        event::emit(Mint {
+            minter: signer::address_of(user),
+            to,
+            amount,
+        });
+    }
+
+
     /// Burn assets from the specified account.
     public entry fun burn(admin: &signer, from: address, amount: u64) acquires Management, AdminInfo {
 
@@ -523,13 +546,15 @@ module kyc_rwa_addr::rwa_token {
         kyc_controller: &signer,
         kyc_registrar_addr: address,
         name: String,
-        description: String
+        description: String,
+        image_url: String
     ) {
         kyc_controller::add_or_update_kyc_registrar(
             kyc_controller,
             kyc_registrar_addr,
             name,
-            description
+            description,
+            image_url
         );
     }
 
@@ -586,13 +611,15 @@ module kyc_rwa_addr::rwa_token {
         // set up initial values for KYC Registrar
         let name            = std::string::utf8(b"KYC Registrar One");
         let description     = std::string::utf8(b"Kyc Registrar One Description");
+        let image_url       = std::string::utf8(b"https://placehold.co/400x400");
 
         // Set up KYC registrar one
         setup_kyc_registrar(
             kyc_controller,
             kyc_registrar_one_addr,
             name,
-            description
+            description,
+            image_url
         );
 
         // set up initial values for KYC Registrar
@@ -604,7 +631,8 @@ module kyc_rwa_addr::rwa_token {
             kyc_controller,
             kyc_registrar_two_addr,
             name,
-            description
+            description,
+            image_url
         );
 
         // Set up valid countries
