@@ -1,6 +1,6 @@
-module kyc_rwa_addr::kyc_controller {
+module sentinel_addr::kyc_controller {
 
-    friend kyc_rwa_addr::rwa_token;
+    friend sentinel_addr::rwa_token;
 
     use std::bcs;
     use std::event;
@@ -199,9 +199,8 @@ module kyc_rwa_addr::kyc_controller {
     const ERROR_COUNTRY_NOT_FOUND: u64                                  = 17;
     const ERROR_INVESTOR_STATUS_NOT_FOUND: u64                          = 18;
     const ERROR_SEND_AMOUNT_GREATER_THAN_MAX_TRANSACTION_AMOUNT: u64    = 19;
-
-    const ERROR_EXCEEDS_TRANSACTION_COUNT_VELOCITY: u64                 = 30;
-    const ERROR_EXCEEDS_TRANSACTION_AMOUNT_VELOCITY: u64                = 31;
+    const ERROR_TRANSACTION_COUNT_VELOCITY_MAX_EXCEEDED: u64            = 20;
+    const ERROR_TRANSACTION_AMOUNT_VELOCITY_MAX_EXCEEDED: u64           = 21;
     
     // -----------------------------------
     // Init
@@ -216,9 +215,6 @@ module kyc_rwa_addr::kyc_controller {
         );
         let extend_ref            = object::generate_extend_ref(&constructor_ref);
         let kyc_controller_signer = &object::generate_signer(&constructor_ref);
-
-        // std::debug::print<vector<u8>>(&b"hello world");
-        // std::debug::print<address>(&signer::address_of(kyc_controller_signer));
 
         // set KycControllerSigner
         move_to(kyc_controller_signer, KycControllerSigner {
@@ -890,6 +886,7 @@ module kyc_rwa_addr::kyc_controller {
         // verify max transaction amount is not reached for sender
         assert!(send_amount <= sender_transaction_policy.max_transaction_amount, ERROR_SEND_AMOUNT_GREATER_THAN_MAX_TRANSACTION_AMOUNT);
 
+        // init current time
         let current_time = timestamp::now_seconds();
 
         // transaction count velocity check
@@ -907,11 +904,11 @@ module kyc_rwa_addr::kyc_controller {
 
             assert!(
                 cumulative_transaction_count <= sender_transaction_policy.transaction_count_velocity_max,
-                ERROR_EXCEEDS_TRANSACTION_COUNT_VELOCITY
+                ERROR_TRANSACTION_COUNT_VELOCITY_MAX_EXCEEDED
             );
         };
 
-        // transaction amount velocity vheck
+        // transaction amount velocity check
         if (sender_transaction_policy.apply_transaction_amount_velocity) {
             
             let time_since_last_amount_velocity = current_time - sender_identity.transaction_amount_velocity_timestamp;
@@ -921,13 +918,13 @@ module kyc_rwa_addr::kyc_controller {
 
             // adjust cumulative_transaction_count if still within transaction_amount_velocity_timeframe
             if (time_since_last_amount_velocity <= sender_transaction_policy.transaction_amount_velocity_timeframe) {
-                cumulative_transaction_amount = sender_identity.cumulative_transaction_amount + send_amount;
+                cumulative_transaction_amount = sender_identity.cumulative_transaction_amount + cumulative_transaction_amount; 
             };
 
             // Verify cumulative transaction amount within velocity limits
             assert!(
                 cumulative_transaction_amount <= sender_transaction_policy.transaction_amount_velocity_max,
-                ERROR_EXCEEDS_TRANSACTION_AMOUNT_VELOCITY
+                ERROR_TRANSACTION_AMOUNT_VELOCITY_MAX_EXCEEDED
             );
         };
 
@@ -973,13 +970,61 @@ module kyc_rwa_addr::kyc_controller {
         let can_receive_bool  = user_transaction_policy.can_receive;
         let valid_amount_bool : bool = false;
 
+        // init current time
+        let current_time = timestamp::now_seconds();
+
+        // transaction count velocity check
+        if (user_transaction_policy.apply_transaction_count_velocity) {
+            
+            let time_since_last_transaction = current_time - user_identity.transaction_count_velocity_timestamp;
+
+            // init cumulative_transaction_count
+            let cumulative_transaction_count = 1;  // including the current transaction
+
+            // adjust cumulative_transaction_count if still within transaction_count_velocity_timeframe
+            if (time_since_last_transaction <= user_transaction_policy.transaction_count_velocity_timeframe) {
+                cumulative_transaction_count = user_identity.cumulative_transaction_count + 1;
+            };
+
+            assert!(
+                cumulative_transaction_count <= user_transaction_policy.transaction_count_velocity_max,
+                ERROR_TRANSACTION_COUNT_VELOCITY_MAX_EXCEEDED
+            );
+        };
+
+
+        // amount checks
         if (option::is_some(&amount)) {
+
             let amount = option::extract(&mut amount); 
+            
+            // max transaction amount check
             if(amount <= user_transaction_policy.max_transaction_amount){
                 valid_amount_bool = true;
             };
-        };
 
+            // transaction amount velocity check
+            if (user_transaction_policy.apply_transaction_amount_velocity) {
+                
+                let time_since_last_amount_velocity = current_time - user_identity.transaction_amount_velocity_timestamp;
+
+                // init cumulative_transaction_amount
+                let cumulative_transaction_amount = amount; // including the current transaction amount
+
+                // adjust cumulative_transaction_count if still within transaction_amount_velocity_timeframe
+                if (time_since_last_amount_velocity <= user_transaction_policy.transaction_amount_velocity_timeframe) {
+                    cumulative_transaction_amount = user_identity.cumulative_transaction_amount + cumulative_transaction_amount;
+                };
+
+                // Verify cumulative transaction amount within velocity limits
+                assert!(
+                    cumulative_transaction_amount <= user_transaction_policy.transaction_amount_velocity_max,
+                    ERROR_TRANSACTION_AMOUNT_VELOCITY_MAX_EXCEEDED
+                );
+            };
+
+        };
+        
         return (can_send_bool, can_receive_bool, valid_amount_bool)
     }
 
@@ -1077,8 +1122,7 @@ module kyc_rwa_addr::kyc_controller {
     // -----------------------------------
 
     public(friend) fun get_kyc_controller_signer_addr() : address {
-        // std::debug::print<address>(&object::create_object_address(&@kyc_rwa_addr, KYC_CONTROLLER_SEED));
-        object::create_object_address(&@kyc_rwa_addr, KYC_CONTROLLER_SEED)
+        object::create_object_address(&@sentinel_addr, KYC_CONTROLLER_SEED)
     }
 
     fun get_kyc_controller_signer(kyc_controller_signer_addr: address): signer acquires KycControllerSigner {
@@ -1087,10 +1131,6 @@ module kyc_rwa_addr::kyc_controller {
 
     public(friend) fun get_reference_signer_addr(kyc_controller_signer_addr: address, reference_addr_seed: vector<u8>) : address {
         object::create_object_address(&kyc_controller_signer_addr, reference_addr_seed)
-    }
-
-    fun get_reference_signer(reference_signer_addr: address): signer acquires UserReferenceSigner {
-        object::generate_signer_for_extending(&borrow_global<UserReferenceSigner>(reference_signer_addr).extend_ref)
     }
 
     // -----------------------------------

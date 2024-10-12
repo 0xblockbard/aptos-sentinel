@@ -1,8 +1,8 @@
 #[test_only]
-module kyc_rwa_addr::rwa_token_test {
+module sentinel_addr::rwa_token_test {
 
-    use kyc_rwa_addr::kyc_controller;
-    use kyc_rwa_addr::rwa_token;
+    use sentinel_addr::kyc_controller;
+    use sentinel_addr::rwa_token;
     use std::option::{Self, Option};
 
     use std::string::{String};
@@ -35,12 +35,14 @@ module kyc_rwa_addr::rwa_token_test {
     const ERROR_COUNTRY_NOT_FOUND: u64                                  = 17;
     const ERROR_INVESTOR_STATUS_NOT_FOUND: u64                          = 18;
     const ERROR_SEND_AMOUNT_GREATER_THAN_MAX_TRANSACTION_AMOUNT: u64    = 19;
-    
+    const ERROR_TRANSACTION_COUNT_VELOCITY_MAX_EXCEEDED: u64            = 20;
+    const ERROR_TRANSACTION_AMOUNT_VELOCITY_MAX_EXCEEDED: u64           = 21;
+
     // RWA Token Errors
-    const ERROR_TRANSFER_KYC_FAIL: u64                                  = 20;
-    const ERROR_SEND_NOT_ALLOWED: u64                                   = 21;
-    const ERROR_RECEIVE_NOT_ALLOWED: u64                                = 22;
-    const ERROR_MAX_TRANSACTION_AMOUNT_EXCEEDED: u64                    = 23;
+    const ERROR_TRANSFER_KYC_FAIL: u64                                  = 22;
+    const ERROR_SEND_NOT_ALLOWED: u64                                   = 23;
+    const ERROR_RECEIVE_NOT_ALLOWED: u64                                = 24;
+    const ERROR_MAX_TRANSACTION_AMOUNT_EXCEEDED: u64                    = 25;
 
     // -----------------------------------
     // Structs
@@ -351,8 +353,10 @@ module kyc_rwa_addr::rwa_token_test {
             transaction_amount_velocity_max
         );
 
-        country_id              = 2; // japan
-        investor_status_id      = 1; // accredited
+        country_id                          = 2; // japan
+        investor_status_id                  = 1; // accredited
+        apply_transaction_count_velocity    = true;
+        apply_transaction_amount_velocity   = true;
         kyc_controller::add_or_update_transaction_policy(
             kyc_controller,
             country_id,
@@ -377,7 +381,7 @@ module kyc_rwa_addr::rwa_token_test {
     // Mint Tests 
     // -----------------------------------
 
-    #[test(aptos_framework = @0x1, kyc_rwa=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_rwa=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_admin_can_mint_rwa_tokens_to_kyced_user(
         aptos_framework: &signer,
         kyc_rwa: &signer,
@@ -410,7 +414,7 @@ module kyc_rwa_addr::rwa_token_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_rwa=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_rwa=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_NOT_ADMIN, location = rwa_token)]
     public entry fun test_non_admin_cannot_mint_rwa_tokens_to_kyced_user(
         aptos_framework: &signer,
@@ -444,7 +448,7 @@ module kyc_rwa_addr::rwa_token_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_rwa=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_rwa=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_USER_NOT_KYC, location = kyc_controller)]
     public entry fun test_admin_cannot_mint_rwa_tokens_to_non_kyced_user(
         aptos_framework: &signer,
@@ -469,7 +473,7 @@ module kyc_rwa_addr::rwa_token_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_rwa=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_rwa=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_RECEIVE_NOT_ALLOWED, location = rwa_token)]
     public entry fun test_admin_cannot_mint_rwa_tokens_to_kyc_user_if_can_receive_is_false(
         aptos_framework: &signer,
@@ -540,7 +544,7 @@ module kyc_rwa_addr::rwa_token_test {
     // Burn Tests 
     // -----------------------------------
 
-    #[test(aptos_framework = @0x1, kyc_rwa=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_rwa=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_admin_can_burn_rwa_tokens_from_kyced_user(
         aptos_framework: &signer,
         kyc_rwa: &signer,
@@ -577,7 +581,7 @@ module kyc_rwa_addr::rwa_token_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_rwa=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_rwa=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_NOT_ADMIN, location = rwa_token)]
     public entry fun test_non_admin_cannot_burn_rwa_tokens_from_kyced_user(
         aptos_framework: &signer,
@@ -618,7 +622,7 @@ module kyc_rwa_addr::rwa_token_test {
     // Deposit Tests
     // -----------------------------------
 
-    // #[test(aptos_framework = @0x1, kyc_rwa=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    // #[test(aptos_framework = @0x1, kyc_rwa=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     // public entry fun test_deposit_success(
     //     aptos_framework: &signer,
     //     kyc_rwa: &signer,
@@ -659,7 +663,7 @@ module kyc_rwa_addr::rwa_token_test {
 
 
     //     // // Simulate a deposit.
-    //     // let management = borrow_global<Management>(@kyc_rwa_addr);
+    //     // let management = borrow_global<Management>(@sentinel_addr);
     //     // let assets = fungible_asset::mint(&management.mint_ref, 100);
     //     // rwa_token::deposit(user_store, assets, &management.transfer_ref);
 
@@ -672,7 +676,7 @@ module kyc_rwa_addr::rwa_token_test {
     // View Tests 
     // -----------------------------------
 
-    #[test(aptos_framework = @0x1, kyc_rwa=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_rwa=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_rwa_token_store(
         aptos_framework: &signer,
         kyc_rwa: &signer,

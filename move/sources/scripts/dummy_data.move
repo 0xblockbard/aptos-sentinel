@@ -3,8 +3,8 @@ script {
     use std::signer;
     use std::option::{Self, Option};
 
-    use kyc_rwa_addr::kyc_controller;
-    // use kyc_rwa_addr::rwa_token;
+    use sentinel_addr::kyc_controller;
+    // use sentinel_addr::rwa_token;
 
     fun setup_dummy_data(creator: &signer) {
 

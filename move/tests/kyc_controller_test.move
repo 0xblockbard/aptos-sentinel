@@ -1,7 +1,7 @@
 #[test_only]
-module kyc_rwa_addr::kyc_controller_test {
+module sentinel_addr::kyc_controller_test {
 
-    use kyc_rwa_addr::kyc_controller;
+    use sentinel_addr::kyc_controller;
     
     // use std::signer;
     use std::string::{String};
@@ -16,6 +16,7 @@ module kyc_rwa_addr::kyc_controller_test {
     // Errors
     // -----------------------------------
 
+    // KYC Controller Errors
     const ERROR_NOT_ADMIN: u64                                          = 1;
     const ERROR_NOT_KYC_REGISTRAR: u64                                  = 2;
     const ERROR_IDENTITY_NOT_FOUND: u64                                 = 3;
@@ -35,6 +36,8 @@ module kyc_rwa_addr::kyc_controller_test {
     const ERROR_COUNTRY_NOT_FOUND: u64                                  = 17;
     const ERROR_INVESTOR_STATUS_NOT_FOUND: u64                          = 18;
     const ERROR_SEND_AMOUNT_GREATER_THAN_MAX_TRANSACTION_AMOUNT: u64    = 19;
+    const ERROR_TRANSACTION_COUNT_VELOCITY_MAX_EXCEEDED: u64            = 20;
+    const ERROR_TRANSACTION_AMOUNT_VELOCITY_MAX_EXCEEDED: u64           = 21;
 
     // -----------------------------------
     // Constants
@@ -371,7 +374,7 @@ module kyc_rwa_addr::kyc_controller_test {
     // Admin KYC Registrar Tests
     // -----------------------------------
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_admin_can_add_new_kyc_registrar(
         aptos_framework: &signer,
         kyc_controller: &signer,
@@ -419,7 +422,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_admin_can_update_existing_kyc_registrar(
         aptos_framework: &signer,
         kyc_controller: &signer,
@@ -475,7 +478,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_admin_can_remove_kyc_registrar(
         aptos_framework: &signer,
         kyc_controller: &signer,
@@ -519,7 +522,58 @@ module kyc_rwa_addr::kyc_controller_test {
 
     }
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[expected_failure(abort_code = ERROR_KYC_REGISTRAR_NOT_FOUND, location = kyc_controller)]
+    public entry fun test_admin_cannot_remove_kyc_registrar_that_does_not_exists(
+        aptos_framework: &signer,
+        kyc_controller: &signer,
+        creator: &signer,
+        kyc_registrar_one: &signer,
+        kyc_registrar_two: &signer,
+        kyc_user_one: &signer,
+        kyc_user_two: &signer
+    )  {
+
+        // setup environment
+        let (_kyc_controller_addr, _creator_addr, kyc_registrar_one_addr, _kyc_registrar_two_addr, _kyc_user_one_addr, _kyc_user_two_addr) = kyc_controller::setup_test(aptos_framework, kyc_controller, creator, kyc_registrar_one, kyc_registrar_two, kyc_user_one, kyc_user_two);
+
+        // call remove_kyc_registrar on non-existent kyc registrar (not added yet)
+        kyc_controller::remove_kyc_registrar(
+            kyc_controller,
+            kyc_registrar_one_addr
+        );
+
+    }
+
+
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[expected_failure(abort_code = ERROR_KYC_REGISTRAR_NOT_FOUND, location = kyc_controller)]
+    public entry fun test_admin_cannot_toggle_pause_on_kyc_registrar_that_does_not_exists(
+        aptos_framework: &signer,
+        kyc_controller: &signer,
+        creator: &signer,
+        kyc_registrar_one: &signer,
+        kyc_registrar_two: &signer,
+        kyc_user_one: &signer,
+        kyc_user_two: &signer
+    )  {
+
+        // setup environment
+        let (_kyc_controller_addr, _creator_addr, kyc_registrar_one_addr, _kyc_registrar_two_addr, _kyc_user_one_addr, _kyc_user_two_addr) = kyc_controller::setup_test(aptos_framework, kyc_controller, creator, kyc_registrar_one, kyc_registrar_two, kyc_user_one, kyc_user_two);
+
+        // call toggle_kyc_registrar on non-existent kyc registrar (not added yet)
+        let active_bool = false;
+        kyc_controller::toggle_kyc_registrar(
+            kyc_controller,
+            kyc_registrar_one_addr,
+            active_bool
+        );
+        
+    }
+
+
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_NOT_ADMIN, location = kyc_controller)]
     public entry fun test_non_admin_cannot_add_new_kyc_registrar(
         aptos_framework: &signer,
@@ -550,7 +604,7 @@ module kyc_rwa_addr::kyc_controller_test {
 
     }
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_NOT_ADMIN, location = kyc_controller)]
     public entry fun test_non_admin_cannot_update_existing_kyc_registrar(
         aptos_framework: &signer,
@@ -595,7 +649,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_NOT_ADMIN, location = kyc_controller)]
     public entry fun test_non_admin_cannot_remove_kyc_registrar(
         aptos_framework: &signer,
@@ -633,7 +687,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_admin_can_toggle_active_for_kyc_registrar(
         aptos_framework: &signer,
         kyc_controller: &signer,
@@ -681,7 +735,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_NOT_ADMIN, location = kyc_controller)]
     public entry fun test_non_admin_cannot_toggle_active_for_kyc_registrar(
         aptos_framework: &signer,
@@ -724,7 +778,7 @@ module kyc_rwa_addr::kyc_controller_test {
     // Valid Country / Investor Status Tests
     // -----------------------------------
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_admin_can_add_or_update_valid_country(
         aptos_framework: &signer,
         kyc_controller: &signer,
@@ -760,7 +814,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_admin_can_remove_valid_country(
         aptos_framework: &signer,
         kyc_controller: &signer,
@@ -793,7 +847,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_NOT_ADMIN, location = kyc_controller)]
     public entry fun test_non_admin_cannot_add_or_update_valid_country(
         aptos_framework: &signer,
@@ -821,7 +875,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_NOT_ADMIN, location = kyc_controller)]
     public entry fun test_non_admin_cannot_remove_valid_country(
         aptos_framework: &signer,
@@ -855,7 +909,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_admin_can_add_or_update_valid_investor_status(
         aptos_framework: &signer,
         kyc_controller: &signer,
@@ -891,7 +945,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_NOT_ADMIN, location = kyc_controller)]
     public entry fun test_non_admin_cannot_add_or_update_valid_investor_status(
         aptos_framework: &signer,
@@ -919,7 +973,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_admin_can_remove_valid_investor_status(
         aptos_framework: &signer,
         kyc_controller: &signer,
@@ -952,7 +1006,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_NOT_ADMIN, location = kyc_controller)]
     public entry fun test_non_admin_cannot_remove_valid_investor_status(
         aptos_framework: &signer,
@@ -989,7 +1043,7 @@ module kyc_rwa_addr::kyc_controller_test {
     // Transaction Policy Tests
     // -----------------------------------
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_admin_can_add_or_update_transaction_policy(
         aptos_framework: &signer,
         kyc_controller: &signer,
@@ -1052,7 +1106,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_NOT_ADMIN, location = kyc_controller)]
     public entry fun test_non_admin_cannot_add_or_update_transaction_policy(
         aptos_framework: &signer,
@@ -1115,7 +1169,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_COUNTRY_NOT_FOUND, location = kyc_controller)]
     public entry fun test_admin_cannot_add_transaction_policy_with_invalid_country(
         aptos_framework: &signer,
@@ -1178,7 +1232,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_INVESTOR_STATUS_NOT_FOUND, location = kyc_controller)]
     public entry fun test_admin_cannot_add_transaction_policy_with_invalid_investor_status(
         aptos_framework: &signer,
@@ -1241,7 +1295,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_admin_can_remove_transaction_policy(
         aptos_framework: &signer,
         kyc_controller: &signer,
@@ -1319,7 +1373,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_NOT_ADMIN, location = kyc_controller)]
     public entry fun test_non_admin_cannot_remove_transaction_policy(
         aptos_framework: &signer,
@@ -1392,7 +1446,7 @@ module kyc_rwa_addr::kyc_controller_test {
     // KYC Registrar Tests
     // -----------------------------------
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_kyc_registrar_can_add_or_update_kyc_for_user(
         aptos_framework: &signer,
         kyc_controller: &signer,
@@ -1441,7 +1495,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_NOT_KYC_REGISTRAR, location = kyc_controller)]
     public entry fun test_non_kyc_registrar_cannot_add_kyc_for_user(
         aptos_framework: &signer,
@@ -1470,7 +1524,32 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[expected_failure(abort_code = ERROR_USER_NOT_KYC, location = kyc_controller)]
+    public entry fun test_cannot_get_identity_for_non_kyced_user(
+        aptos_framework: &signer,
+        kyc_controller: &signer,
+        creator: &signer,
+        kyc_registrar_one: &signer,
+        kyc_registrar_two: &signer,
+        kyc_user_one: &signer,
+        kyc_user_two: &signer
+    )  {
+
+        // setup environment
+        let (_kyc_controller_addr, _creator_addr, kyc_registrar_one_addr, kyc_registrar_two_addr, kyc_user_one_addr, _kyc_user_two) = kyc_controller::setup_test(aptos_framework, kyc_controller, creator, kyc_registrar_one, kyc_registrar_two, kyc_user_one, kyc_user_two);
+
+        setup_basic_kyc_for_test(kyc_controller, kyc_registrar_one_addr, kyc_registrar_two_addr);
+
+        // non kyc registrar cannot KYC new users
+        kyc_controller::get_identity(
+            kyc_user_one_addr
+        );
+
+    }
+
+
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_COUNTRY_NOT_FOUND, location = kyc_controller)]
     public entry fun test_kyc_registrar_cannot_add_invalid_country_for_user_kyc(
         aptos_framework: &signer,
@@ -1499,7 +1578,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_INVESTOR_STATUS_NOT_FOUND, location = kyc_controller)]
     public entry fun test_kyc_registrar_cannot_add_invalid_investor_status_for_user_kyc(
         aptos_framework: &signer,
@@ -1528,7 +1607,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_KYC_REGISTRAR_INACTIVE, location = kyc_controller)]
     public entry fun test_inactive_kyc_registrar_cannot_add_kyc_for_user(
         aptos_framework: &signer,
@@ -1565,7 +1644,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_INVALID_KYC_REGISTRAR_PERMISSION, location = kyc_controller)]
     public entry fun test_kyc_registrar_cannot_change_kyc_for_user_added_by_another_kyc_registrar(
         aptos_framework: &signer,
@@ -1603,7 +1682,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_kyc_registrar_can_remove_kyc_for_user(
         aptos_framework: &signer,
         kyc_controller: &signer,
@@ -1646,7 +1725,42 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[expected_failure(abort_code = ERROR_IDENTITY_NOT_FOUND, location = kyc_controller)]
+    public entry fun test_kyc_registrar_can_remove_kyc_for_user_that_does_not_have_an_identity(
+        aptos_framework: &signer,
+        kyc_controller: &signer,
+        creator: &signer,
+        kyc_registrar_one: &signer,
+        kyc_registrar_two: &signer,
+        kyc_user_one: &signer,
+        kyc_user_two: &signer
+    )  {
+
+        // setup environment
+        let (_kyc_controller_addr, _creator_addr, kyc_registrar_one_addr, kyc_registrar_two_addr, kyc_user_one_addr, _kyc_user_two) = kyc_controller::setup_test(aptos_framework, kyc_controller, creator, kyc_registrar_one, kyc_registrar_two, kyc_user_one, kyc_user_two);
+
+        setup_basic_kyc_for_test(kyc_controller, kyc_registrar_one_addr, kyc_registrar_two_addr);
+
+        // kyc registrar to remove KYC for user that does not have identity
+        kyc_controller::remove_user_identity(
+            kyc_registrar_one,
+            kyc_user_one_addr
+        );
+
+        // check event emits expected info
+        let identity_removed_event = kyc_controller::test_IdentityRemovedEvent(
+            kyc_registrar_one_addr,
+            kyc_user_one_addr
+        );
+
+        // verify if expected event was emitted
+        assert!(was_event_emitted(&identity_removed_event), 100);
+
+    }
+
+
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_NOT_KYC_REGISTRAR, location = kyc_controller)]
     public entry fun test_non_kyc_registrar_cannot_remove_kyc_for_user(
         aptos_framework: &signer,
@@ -1681,7 +1795,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_INVALID_KYC_REGISTRAR_PERMISSION, location = kyc_controller)]
     public entry fun test_kyc_registrar_cannot_remove_kyc_for_user_from_another_kyc_registrar(
         aptos_framework: &signer,
@@ -1716,7 +1830,7 @@ module kyc_rwa_addr::kyc_controller_test {
     }
 
 
-    #[test(aptos_framework = @0x1, kyc_controller=@kyc_rwa_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     #[expected_failure(abort_code = ERROR_KYC_REGISTRAR_INACTIVE, location = kyc_controller)]
     public entry fun test_inactive_kyc_registrar_cannot_remove_kyc_for_user(
         aptos_framework: &signer,
@@ -1757,6 +1871,9 @@ module kyc_rwa_addr::kyc_controller_test {
         );
 
     }
+
+
+    
 
 
 }
