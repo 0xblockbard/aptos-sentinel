@@ -3,8 +3,8 @@ script {
     use std::signer;
     use std::option::{Self, Option};
 
-    use kyc_rwa_addr::kyc_controller;
-    // use kyc_rwa_addr::rwa_token;
+    use sentinel_addr::kyc_controller;
+    // use sentinel_addr::rwa_token;
 
     fun setup_dummy_data(creator: &signer) {
 
@@ -88,6 +88,14 @@ script {
         let max_transaction_amount  = 10000;
         let blacklist_countries     = vector[];
 
+        let apply_transaction_count_velocity        = false;
+        let transaction_count_velocity_timeframe    = 86400;
+        let transaction_count_velocity_max          = 5;
+
+        let apply_transaction_amount_velocity       = false;
+        let transaction_amount_velocity_timeframe   = 86400;
+        let transaction_amount_velocity_max         = 500_000_000_00;
+
         kyc_controller::add_or_update_transaction_policy(
             creator,
             country_id,
@@ -95,7 +103,15 @@ script {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 0; // usa
@@ -107,7 +123,15 @@ script {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+            
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 1; // thailand
@@ -119,7 +143,15 @@ script {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+            
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 1; // thailand
@@ -131,7 +163,15 @@ script {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+            
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 2; // japan
@@ -143,7 +183,15 @@ script {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+            
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 2; // japan
@@ -155,7 +203,15 @@ script {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+            
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 3; // argentina
@@ -167,7 +223,15 @@ script {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+            
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 3; // argentina
@@ -179,7 +243,15 @@ script {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+            
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 4; // france
@@ -191,7 +263,15 @@ script {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+            
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 4; // france
@@ -203,7 +283,15 @@ script {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+            
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 5; // germany
@@ -215,7 +303,15 @@ script {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+            
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 5; // germany
@@ -227,7 +323,15 @@ script {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+            
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 6; // korea
@@ -239,7 +343,15 @@ script {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+            
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         country_id              = 6; // korea
@@ -251,7 +363,15 @@ script {
             can_send,
             can_receive,
             max_transaction_amount,
-            blacklist_countries
+            blacklist_countries,
+
+            apply_transaction_count_velocity,
+            transaction_count_velocity_timeframe,
+            transaction_count_velocity_max,
+            
+            apply_transaction_amount_velocity,
+            transaction_amount_velocity_timeframe,
+            transaction_amount_velocity_max
         );
 
         // ------------------------------------
