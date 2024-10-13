@@ -4,16 +4,13 @@ module sentinel_addr::kyc_interactions_test {
     use sentinel_addr::kyc_controller;
     use sentinel_addr::rwa_token;
 
-    use std::option::{Self, Option};
-
-    // use std::signer;
     use std::string::{String};
+    use std::option::{Self, Option};
 
     use aptos_std::smart_table::{SmartTable};
     
     use aptos_framework::object;
     use aptos_framework::timestamp;
-    // use aptos_framework::event::{ was_event_emitted };
 
     // -----------------------------------
     // Errors

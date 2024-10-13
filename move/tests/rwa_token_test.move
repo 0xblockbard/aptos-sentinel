@@ -3,9 +3,9 @@ module sentinel_addr::rwa_token_test {
 
     use sentinel_addr::kyc_controller;
     use sentinel_addr::rwa_token;
-    use std::option::{Self, Option};
-
+    
     use std::string::{String};
+    use std::option::{Self, Option};
 
     use aptos_std::smart_table::{SmartTable};
     

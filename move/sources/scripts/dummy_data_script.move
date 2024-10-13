@@ -1,10 +1,9 @@
 script {
 
+    use sentinel_addr::kyc_controller;
+    
     use std::signer;
     use std::option::{Self, Option};
-
-    use sentinel_addr::kyc_controller;
-    // use sentinel_addr::rwa_token;
 
     fun setup_dummy_data(creator: &signer) {
 

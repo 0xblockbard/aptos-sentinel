@@ -3,7 +3,6 @@ module sentinel_addr::kyc_controller_test {
 
     use sentinel_addr::kyc_controller;
     
-    // use std::signer;
     use std::string::{String};
     use std::option::{Self, Option};
 
