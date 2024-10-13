@@ -889,44 +889,46 @@ module sentinel_addr::kyc_controller {
         // init current time
         let current_time = timestamp::now_seconds();
 
+        // start transaction velocity check 
+        // also note that the transaction count and amount velocity timestamps may be different
+        let time_since_last_count_transaction  = current_time - sender_identity.transaction_count_velocity_timestamp;
+        let time_since_last_amount_transaction = current_time - sender_identity.transaction_amount_velocity_timestamp;
+
+        // init cumulative_transaction_amount with the current transaction 
+        let cumulative_transaction_count  = 1;
+        let cumulative_transaction_amount = send_amount; 
+        
+        // adjust cumulative_transaction_count if still within transaction_count_velocity_timeframe
+        if (time_since_last_count_transaction <= sender_transaction_policy.transaction_count_velocity_timeframe) {
+            cumulative_transaction_count = sender_identity.cumulative_transaction_count + 1;
+        };
+        
+        // adjust cumulative_transaction_amount if still within transaction_amount_velocity_timeframe
+        if (time_since_last_amount_transaction <= sender_transaction_policy.transaction_amount_velocity_timeframe) {
+            cumulative_transaction_amount = sender_identity.cumulative_transaction_amount + cumulative_transaction_amount;                
+        };
+
         // transaction count velocity check
         if (sender_transaction_policy.apply_transaction_count_velocity) {
-            
-            let time_since_last_transaction = current_time - sender_identity.transaction_count_velocity_timestamp;
-
-            // init cumulative_transaction_count
-            let cumulative_transaction_count = 1; // including the current transaction
-
-            // adjust cumulative_transaction_count if still within transaction_count_velocity_timeframe
-            if (time_since_last_transaction <= sender_transaction_policy.transaction_count_velocity_timeframe) {
-                cumulative_transaction_count = sender_identity.cumulative_transaction_count + 1;
-            };
-
+            // verify cumulative transaction count within velocity limits
             assert!(
-                cumulative_transaction_count <= sender_transaction_policy.transaction_count_velocity_max,
+                cumulative_transaction_count <= sender_transaction_policy.transaction_count_velocity_max, 
                 ERROR_TRANSACTION_COUNT_VELOCITY_MAX_EXCEEDED
             );
         };
 
-        // transaction amount velocity check
+        // transaction amount velocity check 
         if (sender_transaction_policy.apply_transaction_amount_velocity) {
-            
-            let time_since_last_amount_velocity = current_time - sender_identity.transaction_amount_velocity_timestamp;
-
-            // init cumulative_transaction_amount
-            let cumulative_transaction_amount = send_amount; // including the current transaction amount
-
-            // adjust cumulative_transaction_count if still within transaction_amount_velocity_timeframe
-            if (time_since_last_amount_velocity <= sender_transaction_policy.transaction_amount_velocity_timeframe) {
-                cumulative_transaction_amount = sender_identity.cumulative_transaction_amount + cumulative_transaction_amount; 
-            };
-
-            // Verify cumulative transaction amount within velocity limits
+            // verify cumulative transaction amount within velocity limits
             assert!(
-                cumulative_transaction_amount <= sender_transaction_policy.transaction_amount_velocity_max,
+                cumulative_transaction_amount <= sender_transaction_policy.transaction_amount_velocity_max, 
                 ERROR_TRANSACTION_AMOUNT_VELOCITY_MAX_EXCEEDED
             );
         };
+
+        // ps: there seems to be a test coverage glitch where deeply nested conditionals are not registered properly, 
+        //     so we separate the conditionals to reduce the amount of nesting in order to reach a 100% test coverage 
+        //     without any material differences in the logic (still account for edge cases)
 
         return true
     }
@@ -973,21 +975,21 @@ module sentinel_addr::kyc_controller {
         // init current time
         let current_time = timestamp::now_seconds();
 
+        let time_since_last_count_transaction = current_time - user_identity.transaction_count_velocity_timestamp;
+
+        // init cumulative_transaction_count
+        let cumulative_transaction_count = 1;  // including the current transaction
+
+        // adjust cumulative_transaction_count if still within transaction_count_velocity_timeframe
+        if (time_since_last_count_transaction <= user_transaction_policy.transaction_count_velocity_timeframe) {
+            cumulative_transaction_count = user_identity.cumulative_transaction_count + 1;
+        };
+
         // transaction count velocity check
         if (user_transaction_policy.apply_transaction_count_velocity) {
-            
-            let time_since_last_transaction = current_time - user_identity.transaction_count_velocity_timestamp;
-
-            // init cumulative_transaction_count
-            let cumulative_transaction_count = 1;  // including the current transaction
-
-            // adjust cumulative_transaction_count if still within transaction_count_velocity_timeframe
-            if (time_since_last_transaction <= user_transaction_policy.transaction_count_velocity_timeframe) {
-                cumulative_transaction_count = user_identity.cumulative_transaction_count + 1;
-            };
-
+            // verify cumulative transaction count within velocity limits
             assert!(
-                cumulative_transaction_count <= user_transaction_policy.transaction_count_velocity_max,
+                cumulative_transaction_count <= user_transaction_policy.transaction_count_velocity_max, 
                 ERROR_TRANSACTION_COUNT_VELOCITY_MAX_EXCEEDED
             );
         };
@@ -1003,27 +1005,27 @@ module sentinel_addr::kyc_controller {
                 valid_amount_bool = true;
             };
 
-            // transaction amount velocity check
-            if (user_transaction_policy.apply_transaction_amount_velocity) {
-                
-                let time_since_last_amount_velocity = current_time - user_identity.transaction_amount_velocity_timestamp;
+            let time_since_last_amount_velocity = current_time - user_identity.transaction_amount_velocity_timestamp;
 
-                // init cumulative_transaction_amount
-                let cumulative_transaction_amount = amount; // including the current transaction amount
+            // init cumulative_transaction_amount with the current transaction amount
+            let cumulative_transaction_amount = amount;
 
-                // adjust cumulative_transaction_count if still within transaction_amount_velocity_timeframe
-                if (time_since_last_amount_velocity <= user_transaction_policy.transaction_amount_velocity_timeframe) {
-                    cumulative_transaction_amount = user_identity.cumulative_transaction_amount + cumulative_transaction_amount;
-                };
-
-                // Verify cumulative transaction amount within velocity limits
-                assert!(
-                    cumulative_transaction_amount <= user_transaction_policy.transaction_amount_velocity_max,
-                    ERROR_TRANSACTION_AMOUNT_VELOCITY_MAX_EXCEEDED
-                );
+            // adjust cumulative_transaction_count if still within transaction_amount_velocity_timeframe
+            if (time_since_last_amount_velocity <= user_transaction_policy.transaction_amount_velocity_timeframe) {
+                cumulative_transaction_amount = user_identity.cumulative_transaction_amount + cumulative_transaction_amount;                
             };
 
+            // transaction amount velocity check 
+            if (user_transaction_policy.apply_transaction_amount_velocity) {
+                // verify cumulative transaction amount within velocity limits
+                assert!(cumulative_transaction_amount <= user_transaction_policy.transaction_amount_velocity_max, ERROR_TRANSACTION_AMOUNT_VELOCITY_MAX_EXCEEDED);
+            }
+
         };
+
+        // ps: there seems to be a test coverage glitch where deeply nested conditionals are not registered properly, 
+        //     so we separate the conditionals to reduce the amount of nesting in order to reach a 100% test coverage 
+        //     without any material differences in the logic (still account for edge cases)
         
         return (can_send_bool, can_receive_bool, valid_amount_bool)
     }

@@ -910,8 +910,9 @@ module sentinel_addr::rwa_token {
         let user_store = primary_fungible_store::ensure_primary_store_exists(kyc_user_one_addr, metadata());
 
         // test deposit
-        let management = borrow_global<Management>(metadata_address());
-        let assets     = fungible_asset::mint(&management.mint_ref, mint_amount);
+        let deposit_amount = 10000 + 1;
+        let management     = borrow_global<Management>(metadata_address());
+        let assets         = fungible_asset::mint(&management.mint_ref, deposit_amount);
 
         // deposit should fail as max transaction amount exceeded
         deposit(user_store, assets, &management.transfer_ref);
