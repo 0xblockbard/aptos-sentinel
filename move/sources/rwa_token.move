@@ -27,7 +27,7 @@ module sentinel_addr::rwa_token {
     // Constants
     // -----------------------------------
 
-    const ASSET_NAME: vector<u8>      = b"KYC RWA Token Asset";
+    const ASSET_NAME: vector<u8>      = b"Sentinel RWA Token Asset";
     const ASSET_ICON: vector<u8>      = b"http://example.com/favicon.ico";
     const ASSET_WEBSITE: vector<u8>   = b"http://example.com";
 
