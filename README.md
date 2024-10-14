@@ -198,7 +198,7 @@ As Sentinel evolves, we aim to provide a robust foundation for compliant asset t
 
 Thanks for reading till the end!
 
-AptosCrowd is designed and built by 0xBlockBard, a solo indie maker passionate about building innovative products in the web3 space. 
+Sentinel is designed and built by 0xBlockBard, a solo indie maker passionate about building innovative products in the web3 space. 
 
 With over 10 years of experience, my work spans full-stack and smart contract development, with the Laravel Framework as my go-to for web projects. I’m also familiar with Solidity, Rust, LIGO, and most recently, Aptos Move.
 
