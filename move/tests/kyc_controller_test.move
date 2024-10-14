@@ -1682,6 +1682,44 @@ module sentinel_addr::kyc_controller_test {
 
 
     #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
+    #[expected_failure(abort_code = ERROR_INVALID_KYC_REGISTRAR_PERMISSION, location = kyc_controller)]
+    public entry fun test_kyc_registrar_cannot_add_kyc_for_user_added_by_another_kyc_registrar(
+        aptos_framework: &signer,
+        kyc_controller: &signer,
+        creator: &signer,
+        kyc_registrar_one: &signer,
+        kyc_registrar_two: &signer,
+        kyc_user_one: &signer,
+        kyc_user_two: &signer
+    )  {
+
+        // setup environment
+        let (_kyc_controller_addr, _creator_addr, kyc_registrar_one_addr, kyc_registrar_two_addr, kyc_user_one_addr, _kyc_user_two) = kyc_controller::setup_test(aptos_framework, kyc_controller, creator, kyc_registrar_one, kyc_registrar_two, kyc_user_one, kyc_user_two);
+
+        setup_basic_kyc_for_test(kyc_controller, kyc_registrar_one_addr, kyc_registrar_two_addr);
+
+        // kyc registrar one adds new KYC-ed user
+        kyc_controller::add_or_update_user_identity(
+            kyc_registrar_one,
+            kyc_user_one_addr,
+            0, 
+            0, 
+            false
+        );
+
+        // kyc registrar two cannot change details for KYC-ed user added by registrar one
+        kyc_controller::add_or_update_user_identity(
+            kyc_registrar_two,
+            kyc_user_one_addr,
+            0, 
+            0, 
+            true
+        );
+
+    }
+
+
+    #[test(aptos_framework = @0x1, kyc_controller=@sentinel_addr, creator = @0x222, kyc_registrar_one = @0x333, kyc_registrar_two = @0x444, kyc_user_one = @0x555, kyc_user_two = @0x666)]
     public entry fun test_kyc_registrar_can_remove_kyc_for_user(
         aptos_framework: &signer,
         kyc_controller: &signer,
