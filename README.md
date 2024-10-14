@@ -6,7 +6,7 @@ The Sentinel KYC-RWA Tokenisation Framework brings a structured and composable a
 
 As web3 blockchain technology becomes more widely adopted, it’s increasingly important to facilitate the integration of assets such as property and securities onto the blockchain in a way that adheres to regulatory requirements across different jurisdictions.
 
-Inspired by the Medici RWA Asset Framework on Solana, Sentinel provides an unopinionated, flexible, and composable solution to represent tangible and intangible assets with property rights enforced by legal systems.
+Inspired by the [Medici RWA Asset Framework](https://medici-docs.bridgesplit.com/) on Solana, Sentinel provides an unopinionated, flexible, and composable solution to represent tangible and intangible assets with property rights enforced by legal systems.
 
 At its core, Sentinel comprises of a Dispatchable Fungible Asset and KYC Controller module. Any transaction that modifies the distribution of tokens (deposit, withdraw, mint, burn, transfer) will undergo a transaction approval check with the KYC Controller based on the user identity. 
 
