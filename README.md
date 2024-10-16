@@ -62,7 +62,7 @@ The Sentinel demo is accessible at [https://SentinelMove.com](https://sentinelMo
 
 The frontend demo for Sentinel is maintained in a separate repository to ensure that the Move contracts remain focused and well-organised.
 
-It can be found here: [Sentinel Frontend Github](https://github.com)
+It can be found here: [Sentinel Frontend Github](https://github.com/0xblockbard/aptos-sentinel-frontend)
 
 ![Sentinel Bento Grid](https://res.cloudinary.com/blockbard/image/upload/c_scale,w_auto,q_auto,f_auto,fl_lossy/v1728919478/sentinel-bento-grid_ecgins.png)
 
